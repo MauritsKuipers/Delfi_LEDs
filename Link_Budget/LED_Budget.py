@@ -12,7 +12,7 @@ power_choice = "radiant_power"
 ## Data from the LED ##
 wavelength          = 660                           # [nm] red colour
 Uf                  = {350: 2.5, 1000: 4.1}         # Forward Voltage mA & V
-radiant_intensity   = {"min": 450, "typ": 850}      # mW/sr radiant intensity per squared radian (steradian aka the solid angle)
+radiant_intensity   = {"min": 450, "typ": 850}      # [mW/sr] radiant intensity per squared radian (steradian aka the solid angle)
 radiant_power       = 260                           # [mW]
 LED_emiter_diameter = 5                             # [mm]
 divergence_angle    = np.deg2rad(180)               # [rad]
@@ -36,8 +36,8 @@ if power_choice == "radiant_intensity":
     solidangle1 = A1 / r^(2)                    # [rad]
 
     # Power Reached to the Camera #
-    P_transmitted_reached_area = radiant_intensity * solidangle1    # Would this be geometric loss?
-    P_transmitted = P_transmitted_reached_area
+    P_transmitted_reached_area = radiant_intensity["typ"] * solidangle1     # Would this be geometric loss?
+    P_transmitted = 10 * np.log10(P_transmitted_reached_area / 1)           # [dBm]
 
 if power_choice == "radiant_power":
     P_transmitted = 10 * np.log10( (radiant_power) / 1)       # [dBm]
@@ -57,7 +57,7 @@ Le      = -10 * np.log10(np.e**(-alphae * d1))      # dB
 # Geometric Loss Lgeom #
 Dr      = lens_diamter                              # The diameter of the receiving aperture [m]
 Dt      = LED_emiter_diameter * 10**(-3)            # [m] The diameter of transmitting aperture (might not be applicable to LED) [m]
-theta1  = divergence_angle * 10**(3)               # [mrad] Divergence Angle of the Beam [milli-radians]
+theta1  = divergence_angle * 10**(3)                # [mrad] Divergence Angle of the Beam [milli-radians]
 L1      = h                                         # Link Distance [km]
 
 Lgeom   = -20 * np.log10( Dr / (Dt + theta1 * L1))      # dB
@@ -67,8 +67,6 @@ Lgeom   = -20 * np.log10( Dr / (Dt + theta1 * L1))      # dB
 # (Need to revide this one)
 #
 # la      = 10 * np.log( np.sqrt(1 - sigmai ^ (2)) )
-
-
 
 
 # Total Link Budget #
@@ -86,4 +84,3 @@ else:
     print("Transmitted Power: ", P_transmitted)
     print("Geometric Loss: ", Lgeom)
     print("Extinction Losses: ", Le)
-
