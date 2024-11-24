@@ -116,6 +116,9 @@ print("Required Power to Light the LEDs: ", power_drain, "W")
 print("Surface Area Needed to Place the LEDs: ", total_area, "mm2")
 
 
+
+
+
 #########################################################################################################
 ################## NEW VERSION USING CLASSES FOR ORGANIZATION ###########################################
 ######### FOR NOW IT IS ALL IN ONE File BUT IT MIGHT BE SEPARATED INTO DIFFERNT FILES ###################
@@ -140,11 +143,13 @@ class Orbit:                                                        # Source: Dr
         self.OrbitAltitude          = 750                           # [km] Assumed Maximum Orbit Altitude
         self.Elevation              = 40                            # [deg] REASONING TO BE GIVEN, TEMPORARY VALUE
 
-class DelftTelescope:
-
+class DelftTelescope:                                               # Source:
     def __init__(self):
-        self.LensDiamter            = 17                            # [mm]
+        self.LensDiameter            = 17                           # [mm]
 
+class LeidenTelescope:                                              # Source:
+    def __init__(self):
+        self.LensDiameter           = 00                            # [mm] TBD
 
 class LinkBudget_Naval:                                             # Source: https://apps.dtic.mil/sti/trecms/pdf/AD1201034.pdf
 
@@ -154,7 +159,7 @@ class LinkBudget_Naval:                                             # Source: ht
         self.TransmittedPower       = 0                             # Initialization of Variable
 
 
-class LinkBudget_TUD:
+class LinkBudget_TUD:                                               # Source: Slides from Dr. Speretta
 
     def __init__(self):
         self.GeometricLoss          = 0                             # Initialization of Variable
