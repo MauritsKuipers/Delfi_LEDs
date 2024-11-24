@@ -140,6 +140,12 @@ class Orbit:                                                        # Source: Dr
         self.OrbitAltitude          = 750                           # [km] Assumed Maximum Orbit Altitude
         self.Elevation              = 40                            # [deg] REASONING TO BE GIVEN, TEMPORARY VALUE
 
+class DelftTelescope:
+
+    def __init__(self):
+        self.LensDiamter            = 17                            # [mm]
+
+
 class LinkBudget_Naval:                                             # Source: https://apps.dtic.mil/sti/trecms/pdf/AD1201034.pdf
 
     def __init__(self):
