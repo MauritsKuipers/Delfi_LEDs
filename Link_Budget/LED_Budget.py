@@ -6,9 +6,6 @@ import matplotlib
 ## Choices ##
 power_choice = "radiant_power"
 
-
-
-
 ## Data from the LED ##
 wavelength          = 660                           # [nm] red colour
 Uf                  = {350: 2.5, 1000: 4.1}         # Forward Voltage mA & V
@@ -23,8 +20,6 @@ h = 750 # [km]
 
 ## Data from the Camara ##
 lens_diamter = 17*10**(-3) # [m]
-
-
 
 ### Calculation ###
 ## Some Physics Questions ##
@@ -68,9 +63,6 @@ Lgeom   = -20 * np.log10( Dr / (Dt + theta1 * L1))      # dB
 #
 # la      = 10 * np.log( np.sqrt(1 - sigmai ^ (2)) )
 
-
-
-
 # Total Link Budget #
 La = 0
 Gr = 0                                                      # Assumed a receiver gain of 0 for safety
@@ -86,4 +78,41 @@ else:
     print("Transmitted Power: ", P_transmitted)
     print("Geometric Loss: ", Lgeom)
     print("Extinction Losses: ", Le)
+
+#########################################################################################################
+################## NEW VERSION USING CLASSES FOR ORGANIZATION ###########################################
+######### FOR NOW IT IS ALL IN ONE File BUT IT MIGHT BE SEPARATED INTO DIFFERNT FILES ###################
+#########################################################################################################
+class LED:
+    # Source: https://www.epigap-osa.com/Datasheets/Starboard/OCI-490-20_MUR_Star.pdf
+    # COMMENT: This might become difficult to make an automatic parser as LEDs will have different Documentation (PROBLEM FOR FUTURE MAURITS)
+    def __init__(self):
+        self.wavelength             = 660                           # [nm] red colour
+        self.Uf                     = {350: 2.5, 1000: 4.1}         # Forward Voltage mA & V
+        self.radiant_intensity      = {"min": 450, "typ": 850}      # mW/sr radiant intensity per squared radian (steradian aka the solid angle)
+        self.radiant_power          = 260                           # [mW]
+        self.LED_emiter_diameter    = 5                             # [mm]
+        self.divergence_angle       = np.deg2rad(180)               # [rad] This angle was determined "by visual inspection" as there is no data given but the LED looks like for 180 dispersion
+        self.performance            = {}                            # Possible Location to Save all Performance Characteristics Determined from the LinkBudget Calculations
+
+    # Maybe more function inside this class can be made in case some characteristics needed to determined from the given data #
+
+class Orbit:                                                        # Source: Dr. Speretta, Dr. Langbroek, Eventual Ir. Kuipers
+
+    def __init__(self):
+        self.OrbitAltitude          = 750                           # [km] Assumed Maximum Orbit Altitude
+        self.Elevation              = 40                            # [deg] REASONING TO BE GIVEN, TEMPORARY VALUE
+
+class LinkBudget_Naval:                                             # Source: https://apps.dtic.mil/sti/trecms/pdf/AD1201034.pdf
+
+    def __init__(self):
+        self.GeometricLoss          = 0                             # Initialization of Variable
+        self.ExtinctionLoss         = 0                             # Initialization of Variable
+        self.TransmittedPower       = 0                             # Initialization of Variable
+
+
+class LinkBudget_TUD:
+
+    def __init__(self):
+        self.GeometricLoss          = 0                             # Initialization of Variable
 
