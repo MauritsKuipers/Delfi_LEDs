@@ -7,6 +7,8 @@ import matplotlib
 ################## NEW VERSION USING CLASSES FOR ORGANIZATION ###########################################
 ######### FOR NOW IT IS ALL IN ONE File BUT IT MIGHT BE SEPARATED INTO DIFFERNT FILES ###################
 #########################################################################################################
+
+################### LED ###################
 class LED:
     # Source: https://www.epigap-osa.com/Datasheets/Starboard/OCI-490-20_MUR_Star.pdf
     # COMMENT: This might become difficult to make an automatic parser as LEDs will have different Documentation (PROBLEM FOR FUTURE MAURITS)
@@ -16,7 +18,7 @@ class LED:
         self.radiant_intensity                          = {"min": 450, "typ": 850}      # mW/sr radiant intensity per squared radian (steradian aka the solid angle)
         self.radiant_power                              = 260                           # [mW]
         self.LED_emitter_diameter                       = 5                             # [mm]
-        self.divergence_angle                           = np.deg2rad(180)               # [rad] This angle was determined "by visual inspection" as there is no data given but the LED looks like for 180 dispersion
+        self.divergence_angle                           = np.deg2rad(90)                # [rad] This angle was determined "by visual inspection" as there is no data given but the LED looks like for 180 dispersion
         self.performance_radiant_intensity              = {}                            # Possible Location to Save all Performance Characteristics Determined from the LinkBudget Calculations
         self.performance_radiant_power                  = {}                            # Possible Location to Save all Performance Characteristics Determined from the LinkBudget Calculations
 
@@ -24,15 +26,19 @@ class LED:
 
     def transmitted_power_link(self):
         self.P_transmitted = 10 * np.log10((self.radiant_power) / 1)                    # [dBm] This is the transmitted power in for use in the link budget
+
+################### CONSTANTS & ORBIT ###################
 class Constants:
     def __init__(self):
-        self.PlanetRadius = 6378137                                 # [km]
+        self.PlanetRadius = 6378                                 # [km]
 
 class Orbit:                                                        # Source: Dr. Speretta, Dr. Langbroek, Eventual Ir. Kuipers
     def __init__(self):
         self.OrbitAltitude          = 750                           # [km] Assumed Maximum Orbit Altitude
         self.Elevation              = 40                            # [deg] REASONING TO BE GIVEN, TEMPORARY VALUE
 
+
+################### TELESCOPES ###################
 class DelftTelescope:                                               # Source:
     def __init__(self):
         self.LensDiameter           = 17                            # [mm]
@@ -55,6 +61,8 @@ class LeidenTelescope:                                              # Source:
                      (orbit.PlanetRadius + self.TelescopeHeight) + (orbit.OrbitRadius - self.TelescopeHeight)**2 ) - (orbit.PlanetRadius + self.TelescopeHeight) * np.sin(np.deg2rad(orbit.Elevation))
         self.maximum_distance = L
 
+
+################### LINK BUDGETS ###################
 class LinkBudget_Naval:                                             # Source: https://apps.dtic.mil/sti/trecms/pdf/AD1201034.pdf
     def __init__(self):
         self.GeometricLoss          = 0                             # Initialization of Variable
@@ -89,7 +97,7 @@ class LinkBudget_Naval:                                             # Source: ht
         self.link_budget = led.P_transmitted - (Gr + La + self.ExtinctionLoss + self.GeometricLoss)
 
 
-class LinkBudget_source:
+class LinkBudget_source:        # Source: Given as a PDF but I believe it is this one - https://onlinelibrary.wiley.com/doi/10.1002/sat.1478
 
     def __init__(self):
         return
@@ -109,6 +117,7 @@ class LinkBudgetTUD:                                               # Source: Sli
 
 
 ## Initiate the Generic Classes for Any Method ##
+print("WARNING: ATTENTION TO THE DISTANCE USED, AS FOR NOW IT IS JUST TAKEN THE ORBITAL HEIGHT")
 led = LED()
 led.transmitted_power_link()
 constants = Constants()
