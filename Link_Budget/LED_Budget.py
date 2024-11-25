@@ -1,8 +1,10 @@
 ## Code made by MDMLK ##
 import numpy as np
 import math
-import matplotlib
+import matplotlib.pyplot as plt
+import os
 
+print("WARNING: AS IT STANDS THE CODE ONLY DOES THE ANALYSIS FOR ONE DISTANCE, IF IT IS DESIRED A STUDY OF MULTIPLE DISTANCES CHANGE NEEDS TO BE DONE (AKA: COMES WHENEVER MY PEA BRAIN FINISHES IT) ")
 #########################################################################################################
 ################## NEW VERSION USING CLASSES FOR ORGANIZATION ###########################################
 ######### FOR NOW IT IS ALL IN ONE File BUT IT MIGHT BE SEPARATED INTO DIFFERNT FILES ###################
@@ -69,6 +71,7 @@ class LinkBudget_Naval:                                             # Source: ht
         self.ExtinctionLoss         = 0                             # Initialization of Variable
         self.TransmittedPower       = 0                             # Initialization of Variable
 
+    ## Distance Related Losses ##
     def geometric_loss(self, delft_telescope, led, orbit):
         Dr = delft_telescope.LensDiameter * 10 ** (-3)                       # The diameter of the receiving aperture [m]
         Dt = led.LED_emitter_diameter * 10 ** (-3)               # [m] The diameter of transmitting aperture (might not be applicable to LED) [m]
@@ -78,6 +81,7 @@ class LinkBudget_Naval:                                             # Source: ht
         Lgeom = -20 * np.log10(Dr / (Dt + theta1 * L1))  # dB
         self.GeometricLoss = Lgeom
 
+    ## Atmosphere Related Losses ##
     def extinction_loss(self, led):
         # Extinction Loss Le #
         lambda1 = led.wavelength        # Wavelength of the emitted light
@@ -90,31 +94,93 @@ class LinkBudget_Naval:                                             # Source: ht
         Le                      = -10 * np.log10(np.e ** (-alphae * d1))  # dB
         self.ExtinctionLoss     = Le
 
-
+    ## Link Budget ##
     def link_budget(self, led):
         La = 0
         Gr = 0  # Assumed a receiver gain of 0 for safety
         self.link_budget = led.P_transmitted - (Gr + La + self.ExtinctionLoss + self.GeometricLoss)
 
 
-class LinkBudget_source:        # Source: Given as a PDF but I believe it is this one - https://onlinelibrary.wiley.com/doi/10.1002/sat.1478
-
-    def __init__(self):
-        return
-
 class LinkBudgetTUD:                                               # Source: Slides from Dr. Speretta
     def __init__(self):
         self.L_free_space_loss          = 0                             # Initialization of Variable
 
+    ## Distance Related Losses ##
     def free_space_loss(self, orbit, led):
         d1                      = orbit.OrbitAltitude                                                   # [km] Distance between transmitter and receiver
         lambda1                 = led.wavelength                                                        # [nm] Wavelength
         self.L_free_space_loss  = 20 * np.log10(4 * np.pi * (d1 * 10 ** 3) / (lambda1 * 10 ** (-9)))
+
+    ## Link Budget ##
     def link_budget(self, led):
         La = 0
         Gr = 0  # Assumed a receiver gain of 0 for safety
         self.link_budget = led.P_transmitted - (Gr + La + self.L_free_space_loss)
 
+
+class LinkBudget_source:        # Source: Given as a PDF but I believe it is this one - https://onlinelibrary.wiley.com/doi/10.1002/sat.1478
+
+    def __init__(self):
+        self.L_free_space_loss = 0
+
+
+################### FUNCTIONS TO MAKE THE GRAPHS ###################
+def plot_geometric_loss(naval, TUD, source):
+
+    geometric_loss_naval = naval.GeometricLoss
+    free_space_loss_TUD = TUD.L_free_space_loss
+    free_space_loss_Source = source.L_free_space_loss
+
+    x = 750
+
+    plt.plot(x, geometric_loss_naval, color="blue", marker='o', label="NAVAL")
+    plt.plot(x, free_space_loss_TUD, color="red", marker='x', label="TUD")
+    plt.plot(x, free_space_loss_Source, color="green", marker='s', label="SOURCE")
+
+    plt.title("Geometric Losses of Different Methods")
+    plt.xlabel("Distance [km]")
+    plt.ylabel("Loss [dB]")
+    plt.grid(False)
+    plt.legend()
+    plt.show()
+
+def plot_atmospheric_loss(naval, TUD, source):
+
+    atmospheric_loss_naval = naval.GeometricLoss
+    atmospheric_TUD = TUD.L_free_space_loss
+    atmospheric_Source = source.L_free_space_loss
+
+    x = 750
+
+    plt.plot(x, atmospheric_loss_naval, color="blue", marker='o', label="NAVAL")
+    plt.plot(x, atmospheric_TUD, color="red", marker='x', label="TUD")
+    plt.plot(x, atmospheric_Source, color="green", marker='s', label="SOURCE")
+
+    plt.title("Atmospheric Losses of Different Methods")
+    plt.xlabel("Distance [km]")
+    plt.ylabel("Loss [dB]")
+    plt.grid(False)
+    plt.legend()
+    plt.show()
+
+def plot_budget_link(naval, TUD, source):
+
+    link_budget_naval = naval.link_budget
+    link_budget_TUD = TUD.link_budget
+    link_budget_Source = source.link_budget
+
+    x = 750
+
+    plt.plot(x, link_budget_naval, color="blue", marker='o', label="NAVAL")
+    plt.plot(x, link_budget_TUD, color="red", marker='x', label="TUD")
+    plt.plot(x, link_budget_Source, color="green", marker='s', label="SOURCE")
+
+    plt.title("Geometric Losses of Different Methods")
+    plt.xlabel("Distance [km]")
+    plt.ylabel("Loss [dB]")
+    plt.grid(False)
+    plt.legend()
+    plt.show()
 
 ## Initiate the Generic Classes for Any Method ##
 print("WARNING: ATTENTION TO THE DISTANCE USED, AS FOR NOW IT IS JUST TAKEN THE ORBITAL HEIGHT")
@@ -147,4 +213,19 @@ print("=====================TUD========================================")
 print("The Transmitted Power Link is: ", led.P_transmitted)
 print("The Free Space Loss is: ", linkBudget_TUD.L_free_space_loss)
 print("The determined link budget of the LED is", linkBudget_TUD.link_budget)
+
+
+## Using the Source Given ##
+
+linkBudget_source = LinkBudget_source()
+
+print("=====================SOURCE========================================")
+print("The Transmitted Power Link is: ", led.P_transmitted)
+print("The Free Space Loss is: ", linkBudget_TUD.L_free_space_loss)
+print("The determined link budget of the LED is", linkBudget_TUD.link_budget)
+
+
+print("=====================GRAPHS========================================")
+## Making Plots ##
+plot_geometric_loss(linkBudget_naval, linkBudget_TUD, linkBudget_source)
 
