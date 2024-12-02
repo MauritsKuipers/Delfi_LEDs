@@ -8,6 +8,14 @@ import os
 ######### FOR NOW IT IS ALL IN ONE File BUT IT MIGHT BE SEPARATED INTO DIFFERNT FILES ###################
 #########################################################################################################
 
+################### Support Functions that Can be Used Around ###################
+
+# This function was made because here we have the problem of discretized dictionaries but values that dont exactly exist in the dictionary so we get the closest
+def find_closest_key_with_numpy(number, dictionary):
+    keys = np.array(list(dictionary.keys()))
+    closest_key = keys[np.abs(keys - number).argmin()]
+    return closest_key
+
 ################### LED ###################
 class LED:
     # Source: https://www.epigap-osa.com/Datasheets/Starboard/OCI-490-20_MUR_Star.pdf
@@ -30,9 +38,9 @@ class LED:
 ################### CONSTANTS & ORBIT ###################
 class Constants:
     def __init__(self):
-        self.PlanetRadius = 6378                                    # [km]
-        self.atmospheric_altitude = 100                             # [km]
-
+        self.PlanetRadius           = 6378                          # [km]
+        self.atmospheric_altitude   = 100                           # [km]
+        self.Boltzmann_mW           = 1.38 *10**(-20)               # [mW/Hz/K]
 class Orbit:                                                        # Source: Dr. Speretta, Dr. Langbroek, Eventual Ir. Kuipers
     def __init__(self):
         self.OrbitAltitude          = [250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750]                           # [km] Assumed Maximum Orbit Altitude
@@ -40,17 +48,28 @@ class Orbit:                                                        # Source: Dr
 
 
 ################### TELESCOPES ###################
-class DelftTelescope:                                               # Source:
+class DelftTelescope:                                               # Camera ZWO ASI 6200MM PRO Source: Dr. Langbroek and https://www.zwoastro.com/product/asi6200/
     def __init__(self):
         self.LensDiameter           = 17                            # [mm]
         self.TelescopeHeight        = 0                             # [m] Assumed 0 for simplification and "worse case scenario"
+        self.RelativeSpectralResponse       = {350: 0.25, 400: 0.8, 450: 0.98, 500: 0.98, 550: 0.98, 600: 0.98,
+                                       650: 0.96, 700: 0.95, 750: 0.92, 800: 0.9, 850: 0.85, 900: 0.82,
+                                       950: 0.8, 1000: 0.78, 1050: 0.75, 1100: 0.72}  # [nm: -] This is taken from an image sent by Dr. Langbroek and it is just an eye estimation for initial calculations
+        self.TemperatureSystem      = 308.15                        # [K] taken from the webpage from "Cooling temperature"
+        self.SN = 46  # [dB]
+        self.TemperatureSystem = 313.15  # [K] took the highest operating temperature from the source
 
 
-class LeidenTelescope:                                              # Source:
+class LeidenTelescope:                                              # Camera WATEC 902H2 Supreme Source: Dr. Langbroek (Emails) and https://www.watec-shop.com/_bibli/catalogue/2/docs/1-wat-902h2-supreme-specifications.pdf
     def __init__(self):
         self.LensDiameter           = 00                            # [mm] TBD
         self.TelescopeHeight        = 00                            # [m] Assumed 0 for simplification and "worse case scenario"
-
+        self.RelativeSpectralResponse       = {400: 0.5, 450: 0.7, 500: 0.95, 550: 0.92, 600: 0.98, 620: 1,
+                                       650: 0.9, 700: 0.72, 750: 0.55, 800: 0.42, 850: 0.3, 900: 0.2,
+                                       950: 0.1, 1000: 0.7 }        # [nm: -] This is taken from an image sent by Dr. Langbroek and it is just an eye estimation for initial calculations
+        self.MinimumIllumincation   = 0.0003                        # [lx F1.4 (AGC=HI)]
+        self.SN                     = 46                            # [dB]
+        self.TemperatureSystem      = 313.15                        # [K] took the highest operating temperature from the source
 
 
 ################### LINK BUDGETS ###################
@@ -122,12 +141,26 @@ class LinkBudgetTUD:                                               # Source: Sli
             lambda1                 = led.wavelength                                                        # [nm] Wavelength
             self.L_free_space_loss.append( 20 * np.log10(4 * np.pi * (d1 * 10 ** 3) / (lambda1 * 10 ** (-9))) )
 
+    ## Required Received Power ##
+
+    def required_sensing_power(self, telescope, LED, constants):
+        SNR                 = telescope.SN
+        Temperature_system  = telescope.TemperatureSystem
+        Bandwidth           = 1                                 # This needs review as normally this noise is given for communications that occur over a bandwidth of Hz but I am looking at one frequency of light emitted by the LED
+        approx_wavelength   = find_closest_key_with_numpy(LED.wavelength, telescope.RelativeSpectralResponse)
+        QE                  = telescope.RelativeSpectralResponse[approx_wavelength]
+        P_noise_dB  = 10 * np.log10((constants.Boltzmann_mW * Temperature_system * Bandwidth) / QE)
+
+        self.P_required_db       = SNR + P_noise_dB
+        print("The determined required power is: ", self.P_required_db)
+
     ## Link Budget ##
+    # This is the simplified link budget for one LED #
     def link_budget(self, led):
         La = 0
         Gr = 0  # Assumed a receiver gain of 0 for safety
         for L_free_space in self.L_free_space_loss:
-            self.LinkBudget.append( led.P_transmitted - (Gr + La + L_free_space) )
+            self.LinkBudget.append( led.P_transmitted - (Gr + La + L_free_space) - self.P_required_db )
 
 
 class LinkBudget_source:        # Source: Given as a PDF but I believe it is this one - https://onlinelibrary.wiley.com/doi/10.1002/sat.1478
@@ -203,39 +236,39 @@ orbit = Orbit()
 delft_telescope = DelftTelescope()
 
 ## Using the Naval PostGraduate Method ##
+print("=====================NAVAL POSTGRADUATE========================================")
 linkBudget_naval = LinkBudget_Naval()
 linkBudget_naval.maximum_link_distance(orbit, constants, delft_telescope)
 linkBudget_naval.geometric_loss(delft_telescope, led, orbit)
 linkBudget_naval.extinction_loss(led)
 linkBudget_naval.link_budget(led)
 
-print("=====================NAVAL POSTGRADUATE========================================")
 print("The Geometric Loss is: ", linkBudget_naval.GeometricLoss)
 print("The Extinction Loss is: ", linkBudget_naval.ExtinctionLoss)
 print("The Transmitted Power Link is: ", led.P_transmitted)
-print("The determined link budget of the LED is", linkBudget_naval.link_budget)
+print("The determined link budget of the LED is", linkBudget_naval.LinkBudget)
 
 
 ## Using the TU Delft Method ##
+print("=====================TUD========================================")
 linkBudget_TUD = LinkBudgetTUD()
 linkBudget_TUD.maximum_link_distance(orbit, constants, delft_telescope)
 linkBudget_TUD.free_space_loss(orbit, led)
+linkBudget_TUD.required_sensing_power(delft_telescope, led, constants)
 linkBudget_TUD.link_budget(led)
 
-print("=====================TUD========================================")
 print("The Transmitted Power Link is: ", led.P_transmitted)
 print("The Free Space Loss is: ", linkBudget_TUD.L_free_space_loss)
-print("The determined link budget of the LED is", linkBudget_TUD.link_budget)
+print("The determined link budget of the LED is", linkBudget_TUD.LinkBudget)
 
 
 ## Using the Source Given ##
-
+print("=====================SOURCE========================================")
 linkBudget_source = LinkBudget_source()
 
-print("=====================SOURCE========================================")
 print("The Transmitted Power Link is: ", led.P_transmitted)
 print("The Free Space Loss is: ", linkBudget_TUD.L_free_space_loss)
-print("The determined link budget of the LED is", linkBudget_TUD.link_budget)
+print("The determined link budget of the LED is", linkBudget_TUD.LinkBudget)
 
 
 print("=====================GRAPHS========================================")
