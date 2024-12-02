@@ -108,7 +108,7 @@ print("Estimated Minimum Number of LEDs Needed: ", number_LEDs)
 
 # Some Requirements for the Satellite #
 
-power_drain = (forward_voltage * current_drain) * 6
+power_drain = (forward_voltage * current_drain) * number_LEDs
 total_area  = LED_area * number_LEDs
 
 print("Required Power to Light the LEDs: ", power_drain, "W")
