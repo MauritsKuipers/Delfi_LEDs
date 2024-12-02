@@ -29,11 +29,14 @@ class LED:
         self.divergence_angle                           = np.deg2rad(90)                # [rad] This angle was determined "by visual inspection" as there is no data given but the LED looks like for 180 dispersion
         self.performance_radiant_intensity              = {}                            # Possible Location to Save all Performance Characteristics Determined from the LinkBudget Calculations
         self.performance_radiant_power                  = {}                            # Possible Location to Save all Performance Characteristics Determined from the LinkBudget Calculations
-
+        self.forward_voltage = 2.5  # [V]
+        self.current_drain = 0.350  # [A]
+        self.LED_area = 20 * 20  # [mm2]
     # Maybe more function inside this class can be made in case some characteristics needed to determined from the given data #
 
     def transmitted_power_link(self):
         self.P_transmitted = 10 * np.log10((self.radiant_power) / 1)                    # [dBm] This is the transmitted power in for use in the link budget
+
 
 ################### CONSTANTS & ORBIT ###################
 class Constants:
@@ -43,8 +46,8 @@ class Constants:
         self.Boltzmann_mW           = 1.38 *10**(-20)               # [mW/Hz/K]
 class Orbit:                                                        # Source: Dr. Speretta, Dr. Langbroek, Eventual Ir. Kuipers
     def __init__(self):
-        self.OrbitAltitude          = [250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750]                           # [km] Assumed Maximum Orbit Altitude
-        self.Elevation              = 40                                                        # [deg] REASONING TO BE GIVEN, TEMPORARY VALUE
+        self.OrbitAltitude          = [250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750]   # [km] Assumed Maximum Orbit Altitude
+        self.Elevation              = 45                                                        # [deg] Requirement Given by Dr. Langbroek
 
 
 ################### TELESCOPES ###################
@@ -152,7 +155,7 @@ class LinkBudgetTUD:                                               # Source: Sli
         P_noise_dB  = 10 * np.log10((constants.Boltzmann_mW * Temperature_system * Bandwidth) / QE)
 
         self.P_required_db       = SNR + P_noise_dB
-        print("The determined required power is: ", self.P_required_db)
+        print("The determined required sensing power is: ", self.P_required_db)
 
     ## Link Budget ##
     # This is the simplified link budget for one LED #
@@ -161,6 +164,24 @@ class LinkBudgetTUD:                                               # Source: Sli
         Gr = 0  # Assumed a receiver gain of 0 for safety
         for L_free_space in self.L_free_space_loss:
             self.LinkBudget.append( led.P_transmitted - (Gr + La + L_free_space) - self.P_required_db )
+
+    ### Estimating How Many LEDs Needed for Positive Link Budget of at Least 3dB ###
+    def positive_link_budget(self, led):
+        # Estimation of Required Transmitted Power #
+        Margin = 3  # [dB] as assumed in meeting
+        P_required = 10 ** ( (self.L_free_space_loss[-1]  + Margin + self.P_required_db) / 10)
+
+        # Estimation of Necessary Minimum Amount of LEDs #
+        number_LEDs = math.ceil(P_required / led.radiant_power)
+        print("Estimated Minimum Number of LEDs Needed: ", number_LEDs)
+
+        # Some Requirements for the Satellite #
+
+        power_drain = (led.forward_voltage * led.current_drain) * number_LEDs
+        total_area = led.LED_area * number_LEDs
+
+        print("Required Power to Light the LEDs: ", power_drain, "W")
+        print("Surface Area Needed to Place the LEDs: ", total_area, "mm2")
 
 
 class LinkBudget_source:        # Source: Given as a PDF but I believe it is this one - https://onlinelibrary.wiley.com/doi/10.1002/sat.1478
@@ -256,6 +277,7 @@ linkBudget_TUD.maximum_link_distance(orbit, constants, delft_telescope)
 linkBudget_TUD.free_space_loss(orbit, led)
 linkBudget_TUD.required_sensing_power(delft_telescope, led, constants)
 linkBudget_TUD.link_budget(led)
+linkBudget_TUD.positive_link_budget(led)
 
 print("The Transmitted Power Link is: ", led.P_transmitted)
 print("The Free Space Loss is: ", linkBudget_TUD.L_free_space_loss)
